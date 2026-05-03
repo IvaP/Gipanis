@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -77,25 +77,25 @@ class Handler(BaseHTTPRequestHandler):
 
         query = f"""
             SELECT
-                DATE_BIN(INTERVAL '{bucket}', time) + INTERVAL '{bucket}' AS end_bucket_timestamp,
+                date_bin_gapfill(INTERVAL '{bucket}', time) + INTERVAL '{bucket}' AS end_bucket_timestamp,
 
-                selector_last(ltp_1, time)['value'] - selector_first(ltp_1, time)['value'] AS ws1_l,
-                selector_last(rtp_1, time)['value'] - selector_first(rtp_1, time)['value'] AS ws1_r,
+                COALESCE(selector_last(ltp_1, time)['value'] - selector_first(ltp_1, time)['value'], 0) AS ws1_l,
+                COALESCE(selector_last(rtp_1, time)['value'] - selector_first(rtp_1, time)['value'], 0) AS ws1_r,
 
-                selector_last(ltp_2, time)['value'] - selector_first(ltp_2, time)['value'] AS ws2_l,
-                selector_last(rtp_2, time)['value'] - selector_first(rtp_2, time)['value'] AS ws2_r,
+                COALESCE(selector_last(ltp_2, time)['value'] - selector_first(ltp_2, time)['value'], 0) AS ws2_l,
+                COALESCE(selector_last(rtp_2, time)['value'] - selector_first(rtp_2, time)['value'], 0) AS ws2_r,
 
-                selector_last(ltp_3, time)['value'] - selector_first(ltp_3, time)['value'] AS ws3_l,
-                selector_last(rtp_3, time)['value'] - selector_first(rtp_3, time)['value'] AS ws3_r,
+                COALESCE(selector_last(ltp_3, time)['value'] - selector_first(ltp_3, time)['value'], 0) AS ws3_l,
+                COALESCE(selector_last(rtp_3, time)['value'] - selector_first(rtp_3, time)['value'], 0) AS ws3_r,
 
-                selector_last(ltp_4, time)['value'] - selector_first(ltp_4, time)['value'] AS ws4_l,
-                selector_last(rtp_4, time)['value'] - selector_first(rtp_4, time)['value'] AS ws4_r,
+                COALESCE(selector_last(ltp_4, time)['value'] - selector_first(ltp_4, time)['value'], 0) AS ws4_l,
+                COALESCE(selector_last(rtp_4, time)['value'] - selector_first(rtp_4, time)['value'], 0) AS ws4_r,
 
-                selector_last(ltp_5, time)['value'] - selector_first(ltp_5, time)['value'] AS ws5_l,
-                selector_last(rtp_5, time)['value'] - selector_first(rtp_5, time)['value'] AS ws5_r,
+                COALESCE(selector_last(ltp_5, time)['value'] - selector_first(ltp_5, time)['value'], 0) AS ws5_l,
+                COALESCE(selector_last(rtp_5, time)['value'] - selector_first(rtp_5, time)['value'], 0) AS ws5_r,
 
-                selector_last(ltp_6, time)['value'] - selector_first(ltp_6, time)['value'] AS ws6_l,
-                selector_last(rtp_6, time)['value'] - selector_first(rtp_6, time)['value'] AS ws6_r
+                COALESCE(selector_last(ltp_6, time)['value'] - selector_first(ltp_6, time)['value'], 0) AS ws6_l,
+                COALESCE(selector_last(rtp_6, time)['value'] - selector_first(rtp_6, time)['value'], 0) AS ws6_r
 
             FROM metrics
             WHERE
@@ -103,7 +103,7 @@ class Handler(BaseHTTPRequestHandler):
                 AND time >= CAST('{start_timestamp}' AS TIMESTAMP)
                 AND time <  CAST('{end_timestamp}' AS TIMESTAMP)
             GROUP BY
-                DATE_BIN(INTERVAL '{bucket}', time)
+                date_bin_gapfill(INTERVAL '{bucket}', time)
             ORDER BY
                 end_bucket_timestamp;
         """
