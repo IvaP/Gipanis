@@ -36,8 +36,8 @@ class Handler(BaseHTTPRequestHandler):
                     })
                 else:
                     machine_name = parts[1].lower()
-                    utc_start = self.ukraine_time_to_utc_str(params["start"][0])
-                    utc_end = self.ukraine_time_to_utc_str(params["end"][0])
+                    utc_start = params["start"][0]
+                    utc_end = params["end"][0]
                     bucket = params["bucket"][0]
                     rows = self.get_machine_productivity(machine_name, utc_start, utc_end, bucket)
                     rows = self.rows_to_json_ready(rows)
@@ -58,20 +58,6 @@ class Handler(BaseHTTPRequestHandler):
     def get_missing_params(params):
         missing_params = [name for name in REQUIRED_PARAMS if params.get(name, None) is None]
         return missing_params
-
-    @staticmethod
-    def ukraine_time_to_utc_str(dt_str):
-        # строка без timezone, например "2029-04-24T21:46:41"
-        dt_local = datetime.fromisoformat(dt_str)
-
-        # говорим Python, что это время в украинской timezone
-        dt_local = dt_local.replace(tzinfo=ZoneInfo("Europe/Kyiv"))
-
-        # переводим в UTC
-        dt_utc = dt_local.astimezone(timezone.utc)
-
-        # формат для InfluxDB
-        return dt_utc.isoformat().replace("+00:00", "Z")
 
     def get_machine_productivity(self, machine_name, start_timestamp, end_timestamp, bucket):
         start_dt = self.parse_utc_timestamp(start_timestamp)
