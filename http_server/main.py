@@ -5,14 +5,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
-from zoneinfo import ZoneInfo
 
 from influxdb_client_3 import InfluxDBClient3
 
 HOST = "0.0.0.0"
 PORT = 8000
 CLIENT_TOKEN = "yT4oJneVwBaQMJeO8TiUN1qycBf9AGem"
-DATE_TIME_PATTERN = "%d.%m.%Y %H:%M:%S"
 REQUIRED_PARAMS = ("start", "end", "bucket")
 INFLUX_HOST = "http://gipanis.pp.ua:8282"
 INFLUX_DB = "gipanis"
@@ -28,7 +26,7 @@ class Handler(BaseHTTPRequestHandler):
             auth_header = self.headers.get("Authorization")
 
             if auth_header != "Bearer " + CLIENT_TOKEN:
-                self.send_json(401, "unauthorized")
+                self.send_json(401, {"error": "unauthorized"})
             else:
                 if missing_params := self.get_missing_params(params):
                     self.send_json(400, {
@@ -38,11 +36,15 @@ class Handler(BaseHTTPRequestHandler):
                     machine_name = parts[1].lower()
                     utc_start = params["start"][0]
                     utc_end = params["end"][0]
-                    bucket = params["bucket"][0]
-                    rows = self.get_machine_productivity(machine_name, utc_start, utc_end, bucket)
-                    rows = self.rows_to_json_ready(rows)
-                    json_text = json.dumps(rows, ensure_ascii=False)
-                    self.send_json(200, json_text)
+
+                    if self.is_difference_more_than_days(self, utc_start, utc_end, 200):
+                        self.send_json(400, {"error": "time range is too large"})
+                    else:
+                        bucket = params["bucket"][0]
+                        rows = self.get_machine_productivity(machine_name, utc_start, utc_end, bucket)
+                        rows = self.rows_to_json_ready(rows)
+                        json_text = json.dumps(rows, ensure_ascii=False)
+                        self.send_json(200, json_text)
         else:
             self.send_json(404, {"error": "unknown endpoint"})
 
@@ -230,6 +232,16 @@ class Handler(BaseHTTPRequestHandler):
             .isoformat()
             .replace("+00:00", "Z")
         )
+    @staticmethod
+    def parse_iso8601(timestamp):
+        return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
+    @staticmethod
+    def is_difference_more_than_days(self, start_timestamp, end_timestamp, days):
+        start_dt = self.parse_iso8601(start_timestamp)
+        end_dt = self.parse_iso8601(end_timestamp)
+
+        return end_dt - start_dt > timedelta(days=days)
 
     @staticmethod
     def floor_datetime_to_bucket(dt, bucket_delta):

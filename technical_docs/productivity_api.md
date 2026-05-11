@@ -15,8 +15,17 @@
                 - `1d`
         - приклад URI: `/machines/EVA1/productivity?start=2026-05-02T10:00:00Z&end=2026-05-02T20:00:00Z&bucket=1h`
     - токен
-        - токен зберігається в HTTP header'і під назвою `Authorization`
+        - токен передається в HTTP header'і під назвою `Authorization`
         - значення header'а `Authorization`: `Bearer yT4oJneVwBaQMJeO8TiUN1qycBf9AGem`
+    - помилки<br>У разі помилки Content-Type відповіді сервера завжди буде "application/json".
+        - значення header'а `Authorization` не відповідає заданому
+            - відповідь сервера:
+              - HTTP status code: `401`
+              - body: `unauthorized`
+        - відсутні обов'язкові параметри `start`, `end`, `bucket`
+          - відповідь сервера:
+            -  HTTP status code: `400`
+            -  body: `{"error": "missing required parameters: {params_list}"}` 
 - HTTP response
     - у відповідь сервер присилає JSON-масив об'єктів наступного вигляду
       ```json
