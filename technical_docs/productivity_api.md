@@ -1,5 +1,5 @@
 - HTTP request
-    - загальний формат URI: `/machines/{machine_name}/productivity?start={start_timestamp}&end={end_timestamp}&bucket={bucket_value}`
+    - загальний формат URI: `GET /machines/{machine_name}/productivity?start={start_timestamp}&end={end_timestamp}&bucket={bucket_value}`
         - `machine_name` — назва верстата. Наприклад: `Eva1`
         - `start_timestamp`, `end_timestamp` — дата_час початку та кінця вибірки відповідно
             - __значеннями є дата_час у форматі ISO 8601/UTC+0 з точністю до секунд.__ Наприклад: `2026-05-03T20:00:00Z`.<br>При конвертації локального дата_часу в даний формат потрібно брати до уваги поточну часову зону
@@ -17,15 +17,27 @@
     - токен
         - токен передається в HTTP header'і під назвою `Authorization`
         - значення header'а `Authorization`: `Bearer yT4oJneVwBaQMJeO8TiUN1qycBf9AGem`
-    - помилки<br>У разі помилки Content-Type відповіді сервера завжди буде "application/json".
-        - значення header'а `Authorization` не відповідає заданому
+    - помилки<br>У разі помилки Content-Type відповіді сервера завжди буде `application/json`.
+        - значення HTTP header'а `Authorization` не відповідає заданому
             - відповідь сервера:
-              - HTTP status code: `401`
-              - body: `unauthorized`
-        - відсутні обов'язкові параметри `start`, `end`, `bucket`
-          - відповідь сервера:
-            -  HTTP status code: `400`
-            -  body: `{"error": "missing required parameters: {params_list}"}` 
+                - HTTP status code: `401`
+                - body: `{"error": "unauthorized"}`
+        - відсутні обов'язкові параметри URI `start`, `end`, `bucket`
+            - відповідь сервера:
+                - HTTP status code: `400`
+                - body: `{"error": "missing required parameters: {params_list}"}`
+        - діапазон вибірки "ширший", ніж 200 днів
+            - відповідь сервера:
+                - HTTP status code: `400`
+                - body: `{"error": "time range is too large"}`
+        - в URI використаний недопустимий bucket
+            - відповідь сервера:
+                - HTTP status code: `400`
+                - body: `{"error": "missing allowed bucket"}`
+        - невірний URI
+            - відповідь сервера:
+                - HTTP status code: `400`
+                - body: `{"error": "unknown endpoint"}`
 - HTTP response
     - у відповідь сервер присилає JSON-масив об'єктів наступного вигляду
       ```json

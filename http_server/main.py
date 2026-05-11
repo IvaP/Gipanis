@@ -1,5 +1,6 @@
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from logging.handlers import RotatingFileHandler
@@ -16,6 +17,7 @@ INFLUX_HOST = "http://gipanis.pp.ua:8282"
 INFLUX_DB = "gipanis"
 INFLUX_TABLE = "metrics"
 INFLUX_TOKEN = "apiv3_NUIMypuZlWJ-LNHFGxPh5qle2RZ1vYeWTlC0LolZL5vrAgNDiUULkRez6O5pK6TZBf1TAiAnjxMYuWuMjfegxg"
+MAX_PARALLEL_QUERIES = 16
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -41,10 +43,14 @@ class Handler(BaseHTTPRequestHandler):
                         self.send_json(400, {"error": "time range is too large"})
                     else:
                         bucket = params["bucket"][0]
-                        rows = self.get_machine_productivity(machine_name, utc_start, utc_end, bucket)
-                        rows = self.rows_to_json_ready(rows)
-                        json_text = json.dumps(rows, ensure_ascii=False)
-                        self.send_json(200, json_text)
+
+                        if bucket not in bucket_map:
+                            self.send_json(400, {"error": "missing allowed bucket"})
+                        else:
+                            rows = self.get_machine_productivity(machine_name, utc_start, utc_end, bucket)
+                            rows = self.rows_to_json_ready(rows)
+                            json_text = json.dumps(rows, ensure_ascii=False)
+                            self.send_json(200, json_text)
         else:
             self.send_json(404, {"error": "unknown endpoint"})
 
@@ -83,46 +89,48 @@ class Handler(BaseHTTPRequestHandler):
             bucket_delta,
         )
 
-        client = InfluxDBClient3(
-            host=INFLUX_HOST,
-            token=INFLUX_TOKEN,
-            database=INFLUX_DB,
-        )
+        chunks = []
+        current_start = start_dt
 
-        try:
-            current_start = start_dt
+        while current_start < end_dt:
+            current_end = current_start + chunk_delta
 
-            while current_start < end_dt:
-                current_end = current_start + chunk_delta
+            if current_end > end_dt:
+                current_end = end_dt
 
-                if current_end > end_dt:
-                    current_end = end_dt
+            chunks.append((current_start, current_end))
+            current_start = current_end
 
-                chunk_rows = self.query_machine_productivity_chunk(
-                    client=client,
-                    machine_name=machine_name,
-                    start_dt=current_start,
-                    end_dt=current_end,
-                    sql_bucket=sql_bucket,
-                )
+        max_workers = min(MAX_PARALLEL_QUERIES, len(chunks))
 
-                for row in chunk_rows:
-                    row = dict(row)
+        if max_workers > 0:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(
+                        self.query_machine_productivity_chunk_in_thread,
+                        machine_name=machine_name,
+                        start_dt=chunk_start,
+                        end_dt=chunk_end,
+                        sql_bucket=sql_bucket,
+                    )
+                    for chunk_start, chunk_end in chunks
+                ]
 
-                    dt = row["end_bucket_timestamp"]
+                for future in as_completed(futures):
+                    chunk_rows = future.result()
 
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
+                    for row in chunk_rows:
+                        row = dict(row)
 
-                    dt = dt.astimezone(timezone.utc)
+                        dt = row["end_bucket_timestamp"]
 
-                    # Если InfluxDB вернул бакет — заменяем нулевую строку реальными данными.
-                    result_by_timestamp[dt] = row
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
 
-                current_start = current_end
+                        dt = dt.astimezone(timezone.utc)
 
-        finally:
-            client.close()
+                        # Если InfluxDB вернул бакет — заменяем нулевую строку реальными данными.
+                        result_by_timestamp[dt] = row
 
         rows = []
 
@@ -130,6 +138,24 @@ class Handler(BaseHTTPRequestHandler):
             rows.append(result_by_timestamp[dt])
 
         return rows
+
+    def query_machine_productivity_chunk_in_thread(self, machine_name, start_dt, end_dt, sql_bucket):
+        client = InfluxDBClient3(
+            host=INFLUX_HOST,
+            token=INFLUX_TOKEN,
+            database=INFLUX_DB,
+        )
+
+        try:
+            return self.query_machine_productivity_chunk(
+                client=client,
+                machine_name=machine_name,
+                start_dt=start_dt,
+                end_dt=end_dt,
+                sql_bucket=sql_bucket,
+            )
+        finally:
+            client.close()
 
     def query_machine_productivity_chunk(self, client, machine_name, start_dt, end_dt, sql_bucket):
         start_str = self.datetime_to_utc_str(start_dt)
@@ -232,6 +258,7 @@ class Handler(BaseHTTPRequestHandler):
             .isoformat()
             .replace("+00:00", "Z")
         )
+
     @staticmethod
     def parse_iso8601(timestamp):
         return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
