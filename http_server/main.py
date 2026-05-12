@@ -67,16 +67,33 @@ class Handler(BaseHTTPRequestHandler):
         missing_params = [name for name in REQUIRED_PARAMS if params.get(name, None) is None]
         return missing_params
 
+    @staticmethod
+    def choose_chunk_bucket_count(bucket):
+        if bucket == "1h":
+            chunk_bucket_count = 48
+        elif bucket == "1m":
+            chunk_bucket_count = 2880
+        elif bucket == "15m":
+            chunk_bucket_count = 192
+        elif bucket == "30m":
+            chunk_bucket_count = 96
+        elif bucket == "2h":
+            chunk_bucket_count = 24
+        elif bucket == "6h":
+            chunk_bucket_count = 8
+        elif bucket == "12h":
+            chunk_bucket_count = 4
+        elif bucket == "1d":
+            chunk_bucket_count = 2
+
+        return chunk_bucket_count
+
     def get_machine_productivity(self, machine_name, start_timestamp, end_timestamp, bucket):
         start_dt = self.parse_utc_timestamp(start_timestamp)
         end_dt = self.parse_utc_timestamp(end_timestamp)
 
         sql_bucket, bucket_delta = self.normalize_bucket(bucket)
-
-        # Например: по 24 бакета за один запрос.
-        # Для bucket=1h это будет 24 часа.
-        # Для bucket=30m это будет 12 часов.
-        chunk_bucket_count = 24
+        chunk_bucket_count = self.choose_chunk_bucket_count(bucket)
         chunk_delta = bucket_delta * chunk_bucket_count
 
         # Сначала создаём все ожидаемые бакеты с нулями.
