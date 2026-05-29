@@ -17,8 +17,14 @@ MQTT_HOST = "mqtt.gipanis.pp.ua"
 MQTT_PORT = 31883
 MQTT_USERNAME = "userSservisEva1238"
 MQTT_PASSWORD = "!90jkaihqnq23499257#$"
-MQTT_TOPIC = "#"
-DATE_TIME_PATTERN = "%d.%m.%Y %H:%M:%S"
+
+MQTT_TOPICS = [
+    ("+/dataset1", 0),
+    ("+/dataset2", 0),
+    ("+/dataset5", 0),
+    ("+/dataset6", 0),
+]
+
 INFLUX_HOST = "http://localhost:8181"
 INFLUX_DB = "gipanis"
 INFLUX_TABLE = "metrics"
@@ -78,7 +84,7 @@ class Machine:
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
         logging.info(f"Successfully connected to MQTT broker {MQTT_HOST}:{MQTT_PORT}")
-        client.subscribe(MQTT_TOPIC)
+        client.subscribe(MQTT_TOPICS)
     else:
         logging.error(
             f"Connection to MQTT broker {MQTT_HOST}:{MQTT_PORT} failed with result code {reason_code}"
@@ -88,11 +94,11 @@ def on_connect(client, userdata, flags, reason_code, properties):
 def on_subscribe(client, userdata, mid, reason_code_list, properties):
     if reason_code_list[0].is_failure:
         logging.error(
-            f"MQTT broker {MQTT_HOST}:{MQTT_PORT} rejected you subscription {MQTT_TOPIC}: {reason_code_list[0]}"
+            f"MQTT broker {MQTT_HOST}:{MQTT_PORT} rejected you subscription {MQTT_TOPICS}: {reason_code_list[0]}"
         )
     else:
         logging.info(
-            f"MQTT broker {MQTT_HOST}:{MQTT_PORT} accepted you subscription {MQTT_TOPIC}"
+            f"MQTT broker {MQTT_HOST}:{MQTT_PORT} accepted you subscription {MQTT_TOPICS}"
         )
 
 
@@ -241,11 +247,8 @@ def add_point_to_database(
 
              .time(int(time.time()), WritePrecision.S)
              ]
-    with InfluxDBClient3(host=INFLUX_HOST,
-                         token=INFLUX_TOKEN,
-                         database=INFLUX_DB,
-                         write_client_options=wco) as client:
-        client.write(point, write_precision='s')
+
+    influx_client.write(point, write_precision='s')
 
 
 def parse_mqtt_payload(payload_str):
@@ -374,9 +377,9 @@ def db_write_error(self, data: str, exception: InfluxDBError):
     logging.error(f"Failed writing batch: config: {self}, data: {data} due: {exception}")
 
 
-influxdb_write_options = WriteOptions(batch_size=500,
-                                      flush_interval=10_000,
-                                      jitter_interval=2_000,
+influxdb_write_options = WriteOptions(batch_size=1,
+                                      flush_interval=1_000,
+                                      jitter_interval=0,
                                       retry_interval=5_000,
                                       max_retries=5,
                                       max_retry_delay=30_000,
@@ -388,6 +391,13 @@ eva1 = Machine("eva1")
 eva2 = Machine("eva2")
 eva3 = Machine("eva3")
 eva4 = Machine("eva4")
+
+influx_client = InfluxDBClient3(
+    host=INFLUX_HOST,
+    token=INFLUX_TOKEN,
+    database=INFLUX_DB,
+    write_client_options=wco,
+)
 
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqtt_client.username_pw_set(username=MQTT_USERNAME, password=MQTT_PASSWORD)
