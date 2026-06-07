@@ -1,0 +1,25 @@
+Узнай, под каким пользователем работает образ:
+docker run --rm influxdb:3-core id
+
+uid=1500(influxdb3) gid=1500(influxdb3) groups=1500(influxdb3)
+
+sudo chown -R 1500:1500 /home/gipanis/.influxdb/data
+sudo chown -R 1500:1500 /home/gipanis/.influxdb/plugins
+sudo chmod -R u+rwX /home/gipanis/.influxdb/data
+sudo chmod -R u+rwX /home/gipanis/.influxdb/plugins
+
+docker run -d \
+  --name influxdb3 \
+  --ulimit nofile=65536:65536 \
+  -p 192.168.100.86:8181:8181 \
+  -v /home/gipanis/.influxdb/data:/var/lib/influxdb3/data \
+  -v /home/gipanis/.influxdb/plugins:/var/lib/influxdb3/plugins \
+  influxdb:3-core \
+  influxdb3 serve \
+  --node-id=node0 \
+  --object-store=file \
+  --data-dir=/var/lib/influxdb3/data \
+  --plugin-dir=/var/lib/influxdb3/plugins
+
+  ls -l /home/gipanis/.influxdb/data/node0/wal | tail -20
+  ls -l /home/gipanis/.influxdb/data/node0/checkpoints | tail -20

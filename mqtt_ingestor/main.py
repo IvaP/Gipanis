@@ -265,10 +265,6 @@ def on_message(client, userdata, msg):
     try:
         machine_name, dataset = msg.topic.split("/")
         dataset = dataset.lower()
-
-        if dataset == "dataset3" or dataset == "dataset4":
-            return
-
         machine_name = machine_name.lower()
 
         if machine_name == "eva1":
