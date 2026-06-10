@@ -32,3 +32,18 @@ docker run -d \
   -v /home/curly/docker/productivity/http_server.log:/eva_productivity/http_server.log \
   -v /home/curly/docker/productivity/http_server.log.1:/eva_productivity/http_server.log.1 \
   nonameincognito/eva_productivity
+
+  docker run -d \
+  --name eva_statistics \
+  --restart unless-stopped \
+  -p 127.0.0.1:8011:8011 \
+  -v /home/curly/docker/statistics/http_server.log:/eva_statistics/http_server.log \
+  -v /home/curly/docker/statistics/http_server.log.1:/eva_statistics/http_server.log.1 \
+  nonameincognito/eva_statistics
+
+  docker run -d \
+  --name eva_mqtt_ingestor \
+  --restart unless-stopped \
+  -v /home/curly/docker/mqtt_ingestor/mqtt_ingestor.log:/eva_mqtt_ingestor/mqtt_ingestor.log \
+  -v /home/curly/docker/mqtt_ingestor/mqtt_ingestor.log.1:/eva_mqtt_ingestor/mqtt_ingestor.log.1 \
+  nonameincognito/eva_mqtt_ingestor
