@@ -10,14 +10,14 @@ from urllib.parse import parse_qs, urlparse
 from influxdb_client_3 import InfluxDBClient3
 
 HOST = "0.0.0.0"
-PORT = 8000
+PORT = 8010
 CLIENT_TOKEN = "yT4oJneVwBaQMJeO8TiUN1qycBf9AGem"
 REQUIRED_PARAMS = ("start", "end", "bucket")
-INFLUX_HOST = "http://gipanis.pp.ua:8282"
+INFLUX_HOST = "https://db.gipanis.pp.ua"
 INFLUX_DB = "gipanis"
 INFLUX_TABLE = "metrics"
-INFLUX_TOKEN = "apiv3_NUIMypuZlWJ-LNHFGxPh5qle2RZ1vYeWTlC0LolZL5vrAgNDiUULkRez6O5pK6TZBf1TAiAnjxMYuWuMjfegxg"
-MAX_PARALLEL_QUERIES = 16
+INFLUX_TOKEN = "apiv3_QVe-TMB1BUbdeBC3bRugTAx9psOk6DZDv-2Nely7sqWj4PyQnDUuBLCJHta5jzkiMKztJBdiYRxhp_GRIj71iw"
+MAX_PARALLEL_QUERIES = 8
 
 
 class Handler(BaseHTTPRequestHandler):

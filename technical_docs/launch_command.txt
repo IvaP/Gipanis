@@ -11,9 +11,10 @@ sudo chmod -R u+rwX /home/gipanis/.influxdb/plugins
 docker run -d \
   --name influxdb3 \
   --ulimit nofile=65536:65536 \
-  -p 192.168.100.86:8181:8181 \
-  -v /home/gipanis/.influxdb/data:/var/lib/influxdb3/data \
-  -v /home/gipanis/.influxdb/plugins:/var/lib/influxdb3/plugins \
+  --restart unless-stopped \
+  -p 127.0.0.1:8181:8181 \
+  -v /home/curly/.influxdb/data:/var/lib/influxdb3/data \
+  -v /home/curly/.influxdb/plugins:/var/lib/influxdb3/plugins \
   influxdb:3-core \
   influxdb3 serve \
   --node-id=node0 \
@@ -23,3 +24,11 @@ docker run -d \
 
   ls -l /home/gipanis/.influxdb/data/node0/wal | tail -20
   ls -l /home/gipanis/.influxdb/data/node0/checkpoints | tail -20
+
+  docker run -d \
+  --name eva_productivity \
+  --restart unless-stopped \
+  -p 127.0.0.1:8010:8010 \
+  -v /home/curly/docker/productivity/http_server.log:/eva_productivity/http_server.log \
+  -v /home/curly/docker/productivity/http_server.log.1:/eva_productivity/http_server.log.1 \
+  nonameincognito/eva_productivity

@@ -25,10 +25,10 @@ MQTT_TOPICS = [
     ("+/dataset6", 0),
 ]
 
-INFLUX_HOST = "http://localhost:8181"
+INFLUX_HOST = "https://db.gipanis.pp.ua"
 INFLUX_DB = "gipanis"
 INFLUX_TABLE = "metrics"
-INFLUX_TOKEN = "apiv3_Mz80VTdch5mOElazvMm-xr4q2AAMsbki6eLKPUYKNVcJVAI76IQz_7-TzbJBSgow8Qj2QHpWRYAV135X31FYrA"
+INFLUX_TOKEN = "apiv3_QVe-TMB1BUbdeBC3bRugTAx9psOk6DZDv-2Nely7sqWj4PyQnDUuBLCJHta5jzkiMKztJBdiYRxhp_GRIj71iw"
 
 
 class Machine:

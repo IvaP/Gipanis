@@ -1,0 +1,10 @@
+__pycache__
+.git
+.idea
+.venv
+.dockerignore
+Dockerfile
+settings.ini
+tcp_client.py
+mqtt_ingestor.log
+image_launch_memo.md
