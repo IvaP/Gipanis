@@ -1,4 +1,5 @@
 import json
+import configparser
 import logging
 import time
 from logging.handlers import RotatingFileHandler
@@ -13,10 +14,15 @@ from influxdb_client_3 import (
     write_client_options, WritePrecision,
 )
 
-MQTT_HOST = "mqtt.gipanis.pp.ua"
-MQTT_PORT = 31883
-MQTT_USERNAME = "userSservisEva1238"
-MQTT_PASSWORD = "!90jkaihqnq23499257#$"
+config = configparser.ConfigParser()
+
+config_path = Path(__file__).resolve().parent / "settings.ini"
+config.read(config_path, encoding="utf-8")
+
+MQTT_HOST = config["MQTT"]["HOST"]
+MQTT_PORT = config.getint("MQTT", "PORT")
+MQTT_USERNAME = config["MQTT"]["USERNAME"]
+MQTT_PASSWORD = config["MQTT"]["PASSWORD"]
 
 MQTT_TOPICS = [
     ("+/dataset1", 0),
@@ -25,10 +31,10 @@ MQTT_TOPICS = [
     ("+/dataset6", 0),
 ]
 
-INFLUX_HOST = "https://db.gipanis.pp.ua"
-INFLUX_DB = "gipanis"
-INFLUX_TABLE = "metrics"
-INFLUX_TOKEN = "apiv3_QVe-TMB1BUbdeBC3bRugTAx9psOk6DZDv-2Nely7sqWj4PyQnDUuBLCJHta5jzkiMKztJBdiYRxhp_GRIj71iw"
+INFLUX_HOST = config["INFLUXDB"]["HOST"]
+INFLUX_DB = config["INFLUXDB"]["DATABASE"]
+INFLUX_TABLE = config["INFLUXDB"]["TABLE"]
+INFLUX_TOKEN = config["INFLUXDB"]["TOKEN"]
 
 
 class Machine:
