@@ -46,4 +46,5 @@ docker run -d \
   --restart unless-stopped \
   -v /home/curly/docker/mqtt_ingestor/mqtt_ingestor.log:/eva_mqtt_ingestor/mqtt_ingestor.log \
   -v /home/curly/docker/mqtt_ingestor/mqtt_ingestor.log.1:/eva_mqtt_ingestor/mqtt_ingestor.log.1 \
+  -v /home/tsadmin/EvaDocker/settings.ini:/eva_mqtt_ingestor/settings.ini:ro \
   nonameincognito/eva_mqtt_ingestor
